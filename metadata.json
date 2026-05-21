@@ -1,0 +1,6 @@
+{
+  "name": "Halka Phulka",
+  "description": "Full-Stack Cloud Kitchen Ordering & Management System",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

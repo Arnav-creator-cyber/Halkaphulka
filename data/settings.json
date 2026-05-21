@@ -1,0 +1,118 @@
+{
+  "kitchenOpen": true,
+  "deliveryOn": true,
+  "deliveryWindow": "7PM – 8PM",
+  "closedMsg": "Sorry, we are closed for today! Fresh details will be available tomorrow at 5PM.",
+  "deliverySlots": ["ASAP", "7:00 PM (Dinner)", "7:30 PM (Dinner)", "8:00 PM (Dinner)", "8:30 PM (Dinner)", "9:00 PM (Dinner)"],
+  "menu": {
+    "thali": [
+      {
+        "id": "thali",
+        "name": "Dinner Thali",
+        "price": 129,
+        "half": null,
+        "inStock": true,
+        "description": "Veg Pulav · Chana Dal · 3 Poori · Alu Curry · Raita · Fryum · Pickle"
+      }
+    ],
+    "curries": [
+      {
+        "id": "pbm",
+        "name": "Paneer Butter Masala",
+        "price": 189,
+        "half": 99,
+        "inStock": true
+      },
+      {
+        "id": "mvc",
+        "name": "Mix Veg Curry",
+        "price": 159,
+        "half": 79,
+        "inStock": true
+      },
+      {
+        "id": "kpc",
+        "name": "Kaju Paneer Curry",
+        "price": 189,
+        "half": 99,
+        "inStock": true
+      },
+      {
+        "id": "pk",
+        "name": "Paneer Kadhai",
+        "price": 189,
+        "half": 99,
+        "inStock": true
+      }
+    ],
+    "chinese": [
+      {
+        "id": "cp",
+        "name": "Chilly Paneer",
+        "price": 189,
+        "half": 99,
+        "inStock": true
+      },
+      {
+        "id": "p65",
+        "name": "Paneer 65",
+        "price": 189,
+        "half": 99,
+        "inStock": true
+      }
+    ],
+    "addons": [
+      {
+        "id": "er",
+        "name": "Extra Roti",
+        "price": 15,
+        "half": null,
+        "inStock": true
+      },
+      {
+        "id": "br",
+        "name": "Boondi Raita",
+        "price": 20,
+        "half": null,
+        "inStock": true
+      },
+      {
+        "id": "evp",
+        "name": "Extra Veg Pulav",
+        "price": 45,
+        "half": null,
+        "inStock": true
+      }
+    ],
+    "combos": [
+      {
+        "id": "rc1",
+        "name": "3 Roti + Alu Curry",
+        "price": 129,
+        "half": null,
+        "inStock": true
+      },
+      {
+        "id": "rice1",
+        "name": "Veg Pulav + Alu Curry",
+        "price": 119,
+        "half": null,
+        "inStock": true
+      },
+      {
+        "id": "cc1",
+        "name": "3 Roti + Chilly Paneer",
+        "price": 139,
+        "half": null,
+        "inStock": true
+      },
+      {
+        "id": "cc2",
+        "name": "3 Roti + Paneer 65",
+        "price": 139,
+        "half": null,
+        "inStock": true
+      }
+    ]
+  }
+}
