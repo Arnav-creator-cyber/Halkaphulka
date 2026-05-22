@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 
 const PORT = 3000;
 const app = express();
@@ -10,13 +9,44 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Path definitions for persistence
-const DATA_DIR = path.join(process.cwd(), "data");
+let DATA_DIR = path.join(process.cwd(), "data");
+
+// Try to create / write to local data directory to check if it's writeable.
+// If it fails (e.g. read-only filesystem in production Cloud Run), fallback to /tmp/data.
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  const testFile = path.join(DATA_DIR, ".write-test");
+  fs.writeFileSync(testFile, "test-write");
+  fs.unlinkSync(testFile);
+} catch (e) {
+  console.warn("Local project data directory is read-only. Falling back to /tmp/data for storage...");
+  DATA_DIR = path.join("/tmp", "data");
+}
+
+if (!fs.existsSync(DATA_DIR)) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.error("Failed to create DATA_DIR:", err);
+  }
+}
+
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 
-// Ensure data folder exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Safe copy of bundled files if they exist in standard app directory
+function getPackagedFile(filename: string): string | null {
+  const localPackagePath = path.join(process.cwd(), "data", filename);
+  if (fs.existsSync(localPackagePath)) {
+    try {
+      return fs.readFileSync(localPackagePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 // Initial default settings matching the spec
@@ -64,12 +94,30 @@ const DEFAULT_SETTINGS = {
 
 // Ensure settings exist
 if (!fs.existsSync(SETTINGS_FILE)) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2));
+  try {
+    const packagedSettings = getPackagedFile("settings.json");
+    if (packagedSettings) {
+      fs.writeFileSync(SETTINGS_FILE, packagedSettings, "utf-8");
+    } else {
+      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2), "utf-8");
+    }
+  } catch (err) {
+    console.error("Critical error: Could not initialize settings file:", err);
+  }
 }
 
 // Ensure orders exist
 if (!fs.existsSync(ORDERS_FILE)) {
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2));
+  try {
+    const packagedOrders = getPackagedFile("orders.json");
+    if (packagedOrders) {
+      fs.writeFileSync(ORDERS_FILE, packagedOrders, "utf-8");
+    } else {
+      fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), "utf-8");
+    }
+  } catch (err) {
+    console.error("Critical error: Could not initialize orders file:", err);
+  }
 }
 
 // Helper to read and write database files
@@ -124,6 +172,15 @@ app.get("/api/gsheets", (req, res) => {
     if (arrayIndex >= 0 && arrayIndex < orders.length) {
       orders[arrayIndex].status = status;
       saveOrders(orders);
+
+      // Forward status update to target Google Sheets Apps Script webapp
+      const currentSettings = getSettings();
+      if (currentSettings.gasUrl) {
+        fetch(`${currentSettings.gasUrl}?type=updateStatus&rowIndex=${rowIndex}&status=${encodeURIComponent(status)}`)
+          .then(async (gasRes) => console.log(`GAS Web App status update forwarded. Reply status: ${gasRes.status}`))
+          .catch(err => console.error("GAS Web App status forward failed:", err));
+      }
+
       return res.json({ success: true, message: `Status updated to ${status} for row ${rowIndex}` });
     }
 
@@ -264,6 +321,22 @@ app.post("/api/webhook", (req, res) => {
   orders.push(newOrder);
   saveOrders(orders);
 
+  // Forward the order payload to the configured Google Sheet web app if set
+  const currentSettings = getSettings();
+  if (currentSettings.gasUrl) {
+    fetch(currentSettings.gasUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    }).then(async (gasRes) => {
+      console.log(`GAS Web App order forward completed with status: ${gasRes.status}`);
+    }).catch(gasErr => {
+      console.error("GAS Web App dynamic order forward failed:", gasErr);
+    });
+  }
+
   // Return success response compatible with customer app (mode: 'no-cors' ignores return, but let's be fully clean)
   res.json({ success: true, rowIndex: orders.length + 1 });
 });
@@ -302,6 +375,7 @@ app.get("/api/health", (req, res) => {
 async function start() {
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
