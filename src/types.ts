@@ -13,6 +13,7 @@ export interface Settings {
   deliveryWindow: string;
   closedMsg: string;
   deliverySlots?: string[];
+  gasUrl?: string;
   menu: {
     thali: MenuItem[];
     [category: string]: MenuItem[];
