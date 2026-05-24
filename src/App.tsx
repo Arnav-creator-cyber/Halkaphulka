@@ -7,6 +7,13 @@ import { ShoppingBag, Key, ChefHat, Info } from "lucide-react";
 
 export default function App() {
   const [role, setRole] = useState<"customer" | "admin" | "kitchen">(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path === "/admin" || path.startsWith("/admin/")) {
+      return "admin";
+    }
+    if (path === "/kitchen" || path.startsWith("/kitchen/")) {
+      return "kitchen";
+    }
     const params = new URLSearchParams(window.location.search);
     const queryRole = params.get("role");
     if (queryRole === "customer" || queryRole === "admin" || queryRole === "kitchen") {
@@ -15,18 +22,38 @@ export default function App() {
     return "customer";
   });
 
-  // Keep query params in sync with active portal
-  useEffect(() => {
+  const [showSwitcher, setShowSwitcher] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    if (role === "customer") {
-      params.delete("role");
-    } else {
-      params.set("role", role);
+    return params.get("dev") === "true";
+  });
+
+  // Keep pathname/query params in sync with active portal
+  useEffect(() => {
+    let targetPath = "/";
+    if (role === "admin") {
+      targetPath = "/admin";
+    } else if (role === "kitchen") {
+      targetPath = "/kitchen";
     }
+
+    const currentPath = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    
+    // If showSwitcher is enabled, preserve dev=true query
+    if (showSwitcher) {
+      params.set("dev", "true");
+    } else {
+      params.delete("dev");
+    }
+    params.delete("role");
+
     const newQueryString = params.toString();
-    const newUrl = `${window.location.pathname}${newQueryString ? `?${newQueryString}` : ""}`;
-    window.history.replaceState({ path: newUrl }, "", newUrl);
-  }, [role]);
+    const newUrl = `${targetPath}${newQueryString ? `?${newQueryString}` : ""}`;
+
+    if (currentPath !== targetPath || window.location.search !== (newQueryString ? `?${newQueryString}` : "")) {
+      window.history.replaceState({ path: newUrl }, "", newUrl);
+    }
+  }, [role, showSwitcher]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -199,50 +226,54 @@ export default function App() {
   return (
     <div className="w-full min-h-screen bg-[#FBF6EE]">
       
-      {/* Dynamic Multi-Portal Testing bar on Top */}
-      <div className="w-full bg-[#E8860A] text-white py-2 px-4 shadow sticky top-0 z-50 border-b border-[#1B3A2D]/10">
-        <div className="max-w-xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1.5 text-xs">
-          <span className="font-extrabold flex items-center gap-1.5 shrink-0 select-none">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            🇮🇳 Live Testing Environment Switcher
-          </span>
+      {/* Dynamic Multi-Portal Testing bar on Top (Hidden from normal customers; active only if ?dev=true is set) */}
+      {showSwitcher && (
+        <>
+          <div className="w-full bg-[#E8860A] text-white py-2 px-4 shadow sticky top-0 z-50 border-b border-[#1B3A2D]/10">
+            <div className="max-w-xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1.5 text-xs">
+              <span className="font-extrabold flex items-center gap-1.5 shrink-0 select-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                🇮🇳 Live Testing Environment Switcher
+              </span>
 
-          {/* Selector group */}
-          <div className="flex bg-black/15 p-0.5 rounded-lg border border-white/10 shrink-0 font-bold">
-            <button
-              onClick={() => setRole("customer")}
-              className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "customer" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" /> Customer App
-            </button>
-            <button
-              onClick={() => setRole("admin")}
-              className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "admin" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
-            >
-              <Key className="w-3.5 h-3.5" /> Owner Admin
-            </button>
-            <button
-              onClick={() => setRole("kitchen")}
-              className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "kitchen" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
-            >
-              <ChefHat className="w-3.5 h-3.5" /> Kitchen Screen
-            </button>
+              {/* Selector group */}
+              <div className="flex bg-black/15 p-0.5 rounded-lg border border-white/10 shrink-0 font-bold">
+                <button
+                  onClick={() => setRole("customer")}
+                  className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "customer" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" /> Customer App
+                </button>
+                <button
+                  onClick={() => setRole("admin")}
+                  className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "admin" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
+                >
+                  <Key className="w-3.5 h-3.5" /> Owner Admin
+                </button>
+                <button
+                  onClick={() => setRole("kitchen")}
+                  className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all text-[11px] font-black cursor-pointer ${role === "kitchen" ? "bg-white text-[#1B3A2D] shadow" : "text-white/80 hover:text-white"}`}
+                >
+                  <ChefHat className="w-3.5 h-3.5" /> Kitchen Screen
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Role explanation bar */}
-      <div className="bg-stone-100 text-[#1B3A2D] text-[10px] py-1 border-b border-stone-200">
-        <div className="max-w-xl mx-auto px-4 flex justify-between items-center font-bold">
-          <span className="flex items-center gap-1">
-            <Info className="w-3.5 h-3.5 text-[#E8860A]" /> 
-            {role === "customer" && "Viewing Customer Application (index.html equivalent)"}
-            {role === "admin" && "Viewing Admin Control Board (admin.html equivalent)"}
-            {role === "kitchen" && "Viewing Kitchen Display Monitor (dashboard.html equivalent)"}
-          </span>
-          <span className="text-stone-400 italic">Self-Syncs instantly in multi-portal loop</span>
-        </div>
-      </div>
+          {/* Role explanation bar */}
+          <div className="bg-stone-100 text-[#1B3A2D] text-[10px] py-1 border-b border-stone-200">
+            <div className="max-w-xl mx-auto px-4 flex justify-between items-center font-bold">
+              <span className="flex items-center gap-1">
+                <Info className="w-3.5 h-3.5 text-[#E8860A]" /> 
+                {role === "customer" && "Viewing Customer Application (index.html equivalent)"}
+                {role === "admin" && "Viewing Admin Control Board (admin.html equivalent)"}
+                {role === "kitchen" && "Viewing Kitchen Display Monitor (dashboard.html equivalent)"}
+              </span>
+              <span className="text-stone-400 italic">Self-Syncs instantly in multi-portal loop</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Frame view loaders */}
       <div className="relative">
